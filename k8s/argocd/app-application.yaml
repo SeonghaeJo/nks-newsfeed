@@ -1,0 +1,35 @@
+# ArgoCD Application for NKS Newsfeed Spring Boot App
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nks-newsfeed-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SeonghaeJo/nks-newsfeed.git
+    targetRevision: main
+    path: helm/nks-newsfeed
+    helm:
+      valueFiles:
+      - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nks-newsfeed
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
