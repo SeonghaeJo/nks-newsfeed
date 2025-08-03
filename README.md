@@ -28,3 +28,14 @@
   - AuthService : JWT 인증
 #### Post Distribution Worker
 - 포스트 전송 작업 서버
+
+### Data Consistency
+#### Saga Pattern for MySQL-Neo4j Synchronization
+- **Problem**: MySQL(사용자 정보)과 Neo4j(친구 관계) 간 데이터 일관성 보장 필요
+- **Solution**: Event-driven Saga Pattern with compensation logic
+- **Flow**:
+  1. MySQL에 User 저장 후 UserCreatedEvent 발행
+  2. @TransactionalEventListener로 Neo4j 동기화 시도
+  3. @Retryable(3회, backoff 1s→2s→4s)로 재시도
+  4. 실패 시 @Recover에서 MySQL 데이터 삭제 (보상 트랜잭션)
+- **Result**: Eventually Consistent 데이터 상태 보장
