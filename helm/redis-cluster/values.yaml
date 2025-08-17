@@ -1,4 +1,4 @@
-₩replicaCount: 6
+replicaCount: 6
 
 image:
   repository: redis
@@ -56,7 +56,7 @@ auth:
   password: ""
 
 metrics:
-  enabled: true
+  enabled: false
   image:
     repository: oliver006/redis_exporter
     tag: "v1.50.0"
