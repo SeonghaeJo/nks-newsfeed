@@ -10,7 +10,7 @@ fullnameOverride: ""
 
 cluster:
   enabled: true
-  replicas: 3
+  replicas: 1
   init:
     enabled: true
     resources:
