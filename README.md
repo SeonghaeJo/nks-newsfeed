@@ -1,6 +1,6 @@
 # 뉴스피드 시스템 구축
 
-### Infra
+## Infra
 - Ncloud Kubernetes Service 기반
   - 클러스터 전체 자원: vCPU 16EA, Memory 32GB
   - Naver Cloud Platform Application LoadBalancer (NCP ALB)를 Kubernetes Ingress 로 사용
@@ -14,23 +14,25 @@
 - 그래프 데이터베이스 : Neo4j
 - 포스팅 / 사용자 정보 데이터베이스 : MySQL
 
-### Architecture
+## Architecture
 - 가상면접 사례로 배우는 대규모 시스템 설계 기초 1 / 11장 기반
 ![newfeed-arch.png](newfeed-arch.png)
 
-### Backend Application
-#### Web Application
+## Backend Application
+### Web Application
 - 포스팅 저장 / 전송 / 인증 / 친구 관리
   - PostService : 포스트 CRUD
   - PostTransmitService : 포스트를 메시지 큐로 전송
   - UserService : 사용자 CRUD
   - FriendService : 친구 CRUD
   - AuthService : JWT 인증
-#### Post Distribution Worker
+### Post Distribution Worker
 - 포스트 전송 작업 서버
 
-### Data Consistency
-#### Saga Pattern for MySQL-Neo4j Synchronization
+---
+
+## Data Consistency
+### Saga Pattern for MySQL-Neo4j Synchronization
 - **Problem**: MySQL(사용자 정보)과 Neo4j(친구 관계) 간 데이터 일관성 보장 필요
 - **Solution**: Event-driven Saga Pattern with compensation logic
 - **Flow**:
@@ -40,14 +42,18 @@
   4. 실패 시 @Recover에서 MySQL 데이터 삭제 (보상 트랜잭션)
 - **Result**: Eventually Consistent 데이터 상태 보장
 
-### Naver Cloud Platform Configuration
+---
+
+## Naver Cloud Platform Configuration
 - Public NAT Gateway 생성 후 Private Subnet 을 위한 Route Table 에 모든 목적지 IP에 대한 NATGW Target Route를 추가해야 한다.
   - NKS Pod 들은 Private Subnet 안에 생성되기 때문에, 인터넷 아웃바운드 통신 (외부 레지스트리 접근 등)을 위해 필요하다.
 - TCP 인바운드/아웃바운드 차단 규칙이 없어야 quay.io (container image registry of RedHat) 접속이 된다.
 
-### ArgoCD 설치 및 연동
+---
 
-#### 1. ArgoCD 설치
+## ArgoCD 설치 및 연동
+
+### 1. ArgoCD 설치
 ```bash
 # ArgoCD namespace 생성
 kubectl create namespace argocd
@@ -59,7 +65,7 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl apply -f k8s/argocd/install.yaml
 ```
 
-#### 2. ArgoCD 접속 설정
+### 2. ArgoCD 접속 설정
 ```bash
 # ArgoCD admin 비밀번호 확인
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
@@ -68,20 +74,22 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 kubectl get svc -n argocd argocd-server-lb
 ```
 
-#### 3. ArgoCD 웹 UI 접속
+### 3. ArgoCD 웹 UI 접속
 - URL: `http://<LoadBalancer-External-IP>`
 - Username: `admin`
 - Password: 위에서 확인한 비밀번호
 
-### Redis Cluster
+---
 
-#### 특징
+## Redis Cluster
+
+### 특징
 - Sharding: 키 공간을 hash slot 으로 나누어 각 노드에 분산 저장
   - 슬롯 재분배를 통해 수평 확장 가능
 - High Availability: 각 마스터 노드마다 replica(슬레이브) 노드가 있어 failover 가능
   - 마스터 장애 발생 시 replica 중 하나가 majority vote 를 통해 새로운 마스터로 승격
 
-#### 통신 방식
+### 통신 방식
 - 클러스터 내부 노드 간 통신 (Gossip Protocol)
   - 노드들이 주기적으로 자신의 상태(슬롯, 마스터 여부, 장애 여부 등)를 전파하며, 전파받은 노드들은 자신의 상태와 병합해서 다른 노드로 전파
   - Cluster Bus: TCP 16379 포트 사용
@@ -93,7 +101,7 @@ kubectl get svc -n argocd argocd-server-lb
     - Redisson, JedisCluster, Lettuce 
   - TCP 6379 포트 사용
 
-#### k8s 구축
+### k8s 구축
 - 노드들이 서로를 인식하고 Redis Cluster 를 구성하려면 `redis-cli --cluster create ...`으로 클러스터를 초기화해야 함.
   - sts의 파드들이 모두 ready 상태가 되면 `cluster-init-job.yaml`을 실행
 - Redis 노드의 안정적인 네트워크 ID와 순서 보장을 위해 sts 사용
@@ -106,19 +114,19 @@ kubectl get svc -n argocd argocd-server-lb
   - 최대 1개 pod까지만 동시 중단 허용 (`maxUnavailable: 1`)
   - 노드 업그레이드나 유지보수 시 서비스 중단 최소화
 
-##### 파드 볼륨 구성
+#### 파드 볼륨 구성
 
-**1. redis-data (volumeClaimTemplate)**
-- 용도: Redis 데이터 영속 저장소 (`/data` 마운트)
-- 타입: PersistentVolumeClaim (각 pod마다 독립된 5Gi NKS Block Storage)
-- 특징: pod 재시작/재스케줄링 시에도 데이터 유지
+- redis-data (volumeClaimTemplate)
+  - 용도: Redis 데이터 영속 저장소 (`/data` 마운트)
+  - 타입: PersistentVolumeClaim (각 pod마다 독립된 5Gi NKS Block Storage)
+  - 특징: pod 재시작/재스케줄링 시에도 데이터 유지
 
-**2. redis-config (ConfigMap 볼륨)**
-- 용도: Redis 설정파일 제공 (`/etc/redis` 마운트)
-- 내용: `redis.conf` (cluster-enabled, maxmemory 정책 등)
-- 특징: 모든 pod가 동일한 설정 공유
+- redis-config (ConfigMap 볼륨)
+  - 용도: Redis 설정파일 제공 (`/etc/redis` 마운트)
+  - 내용: `redis.conf` (cluster-enabled, maxmemory 정책 등)
+  - 특징: 모든 pod가 동일한 설정 공유
 
-##### 클러스터 초기화 여부 확인
+#### 클러스터 초기화 여부 확인
 ```bash
 # 클러스터 상태 확인
 kubectl exec -n nks-infrastructure redis-cluster-0 -- redis-cli cluster info
