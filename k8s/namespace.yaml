@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nks-infrastructure
+  labels:
+    name: nks-infrastructure
+    purpose: infrastructure
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nks-newsfeed
+  labels:
+    name: nks-newsfeed
+    purpose: application

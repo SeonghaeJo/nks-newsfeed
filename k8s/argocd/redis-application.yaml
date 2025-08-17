@@ -1,61 +1,39 @@
-# ArgoCD Application for Redis Cluster
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nks-newsfeed-redis
+  name: redis-cluster
   namespace: argocd
+  labels:
+    app.kubernetes.io/name: redis-cluster
+    app.kubernetes.io/component: database
 spec:
   project: default
   source:
-    repoURL: https://charts.bitnami.com/bitnami
-    chart: redis-cluster
-    targetRevision: 9.0.8
+    repoURL: https://github.com/SeonghaeJo/nks-newsfeed.git
+    targetRevision: main
+    path: helm/redis-cluster
     helm:
-      values: |
-        cluster:
-          nodes: 6
-          replicas: 1
-        
-        persistence:
-          enabled: true
-          storageClass: "nks-block-storage"
-          size: 10Gi
-        
-        redis:
-          resources:
-            requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
-              memory: "2Gi"
-              cpu: "1000m"
-          
-        metrics:
-          enabled: true
-          serviceMonitor:
-            enabled: false
-          
-        auth:
-          enabled: false  # 개발 환경용, 운영에서는 true 권장
-          
-        networkPolicy:
-          enabled: false
-          
-        podAntiAffinity:
-          type: "preferred"
-          
+      valueFiles:
+      - values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: nks-newsfeed
+    namespace: nks-infrastructure
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    - ServerSideApply=true
     retry:
-      limit: 3
+      limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+  ignoreDifferences:
+  - group: apps
+    kind: StatefulSet
+    jsonPointers:
+    - /spec/replicas
+    - /spec/template/spec/containers/0/resources

@@ -1,0 +1,76 @@
+₩replicaCount: 6
+
+image:
+  repository: redis
+  tag: "7.0.11-alpine"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+cluster:
+  enabled: true
+  replicas: 3
+
+service:
+  type: ClusterIP
+  port: 6379
+  clusterPort: 16379
+
+persistence:
+  enabled: true
+  storageClass: "nks-block-storage"
+  size: 5Gi
+  accessMode: ReadWriteOnce
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podAntiAffinity:
+  enabled: true
+  topologyKey: "kubernetes.io/hostname"
+
+redis:
+  configmap: |
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+    save 900 1 300 10 60 10000
+    tcp-keepalive 60
+    timeout 300
+    cluster-enabled yes
+    cluster-config-file nodes-6379.conf
+    cluster-node-timeout 15000
+    appendonly yes
+
+auth:
+  enabled: false
+  password: ""
+
+metrics:
+  enabled: true
+  image:
+    repository: oliver006/redis_exporter
+    tag: "v1.50.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "32Mi"
+      cpu: "10m"
+    limits:
+      memory: "64Mi"
+      cpu: "50m"
+  serviceMonitor:
+    enabled: true
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1

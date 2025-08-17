@@ -1,0 +1,14 @@
+apiVersion: v2
+name: redis-cluster
+description: A custom Redis Cluster Helm chart for NKS Newsfeed
+type: application
+version: 0.1.0
+appVersion: "7.0.11"
+keywords:
+  - redis
+  - cluster
+  - database
+  - cache
+maintainers:
+  - name: NKS Team
+    email: nks@example.com
