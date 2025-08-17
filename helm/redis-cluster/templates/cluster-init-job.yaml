@@ -1,0 +1,81 @@
+{{- if .Values.cluster.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "redis-cluster.fullname" . }}-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-cluster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cluster-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        {{- include "redis-cluster.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: cluster-init
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: redis-cluster-init
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for all Redis pods to be ready..."
+          
+          # Wait for all StatefulSet pods to be ready
+          for i in $(seq 0 $(({{ .Values.replicaCount }} - 1))); do
+            echo "Checking redis-cluster-$i..."
+            while ! redis-cli -h {{ include "redis-cluster.fullname" . }}-$i.{{ include "redis-cluster.fullname" . }}-headless -p 6379 ping > /dev/null 2>&1; do
+              echo "Waiting for redis-cluster-$i to be ready..."
+              sleep 5
+            done
+            echo "redis-cluster-$i is ready"
+          done
+          
+          echo "All Redis pods are ready. Checking cluster status..."
+          
+          # Check if cluster is already initialized
+          CLUSTER_INFO=$(redis-cli -h {{ include "redis-cluster.fullname" . }}-0.{{ include "redis-cluster.fullname" . }}-headless -p 6379 cluster info 2>/dev/null || echo "")
+          
+          if echo "$CLUSTER_INFO" | grep -q "cluster_state:ok"; then
+            echo "Redis cluster is already initialized and healthy"
+            exit 0
+          fi
+          
+          echo "Initializing Redis cluster..."
+          
+          # Build the list of Redis nodes
+          REDIS_NODES=""
+          for i in $(seq 0 $(({{ .Values.replicaCount }} - 1))); do
+            NODE_IP=$(nslookup {{ include "redis-cluster.fullname" . }}-$i.{{ include "redis-cluster.fullname" . }}-headless | grep -A1 "Name:" | grep "Address:" | cut -d' ' -f2)
+            if [ -z "$NODE_IP" ]; then
+              # Fallback to service name if nslookup fails
+              NODE_IP="{{ include "redis-cluster.fullname" . }}-$i.{{ include "redis-cluster.fullname" . }}-headless"
+            fi
+            REDIS_NODES="$REDIS_NODES $NODE_IP:6379"
+          done
+          
+          echo "Redis nodes: $REDIS_NODES"
+          
+          # Create the cluster with replicas
+          redis-cli --cluster create $REDIS_NODES \
+            --cluster-replicas {{ .Values.cluster.replicas }} \
+            --cluster-yes
+          
+          echo "Redis cluster initialization completed successfully!"
+          
+          # Verify cluster status
+          redis-cli -h {{ include "redis-cluster.fullname" . }}-0.{{ include "redis-cluster.fullname" . }}-headless -p 6379 cluster info
+          redis-cli -h {{ include "redis-cluster.fullname" . }}-0.{{ include "redis-cluster.fullname" . }}-headless -p 6379 cluster nodes
+        resources:
+          {{- toYaml .Values.cluster.init.resources | nindent 10 }}
+{{- end }}

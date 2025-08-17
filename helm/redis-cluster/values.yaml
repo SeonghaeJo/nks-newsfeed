@@ -11,6 +11,15 @@ fullnameOverride: ""
 cluster:
   enabled: true
   replicas: 3
+  init:
+    enabled: true
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
 
 service:
   type: ClusterIP
