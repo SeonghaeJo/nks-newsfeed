@@ -73,3 +73,63 @@ kubectl get svc -n argocd argocd-server-lb
 - Username: `admin`
 - Password: 위에서 확인한 비밀번호
 
+### Redis Cluster
+
+#### 특징
+- Sharding: 키 공간을 hash slot 으로 나누어 각 노드에 분산 저장
+  - 슬롯 재분배를 통해 수평 확장 가능
+- High Availability: 각 마스터 노드마다 replica(슬레이브) 노드가 있어 failover 가능
+  - 마스터 장애 발생 시 replica 중 하나가 majority vote 를 통해 새로운 마스터로 승격
+
+#### 통신 방식
+- 클러스터 내부 노드 간 통신 (Gossip Protocol)
+  - 노드들이 주기적으로 자신의 상태(슬롯, 마스터 여부, 장애 여부 등)를 전파하며, 전파받은 노드들은 자신의 상태와 병합해서 다른 노드로 전파
+  - Cluster Bus: TCP 16379 포트 사용
+- 클라이언트와 노드 간 통신
+  - redis cluster 는 프록시/라우터가 없어서 smart client (cluster-aware client) 필요
+    - 클라이언트가 요청 키 기반으로 슬롯 번호를 계산하여, 적절한 마스터 노드로 요청을 보내야 함
+    - 잘못된 노드로 요청을 보낼 경우 `MOVED <slot> <new_node>` 응답이 오므로 슬롯-노드 매핑 정보를 업데이트하고 다시 요청해야 함
+    - 슬롯 재분배 중인 경우 `ASK <slot> <temp_node>` 응답이 오므로 임시 노드에 요청을 보내야 함
+    - Redisson, JedisCluster, Lettuce 
+  - TCP 6379 포트 사용
+
+#### k8s 구축
+- 노드들이 서로를 인식하고 Redis Cluster 를 구성하려면 `redis-cli --cluster create ...`으로 클러스터를 초기화해야 함.
+  - sts의 파드들이 모두 ready 상태가 되면 `cluster-init-job.yaml`을 실행
+- Redis 노드의 안정적인 네트워크 ID와 순서 보장을 위해 sts 사용
+  - `redis-cluster-0`, `redis-cluster-1` 등 고정된 pod 이름 생성
+  - 클러스터 노드 간 상호 인식을 위한 DNS 이름 필요
+- Headless Service: `ClusterIP: None`으로 설정된 서비스로, 일반적인 서비스와 달리 로드밸런싱을 하지 않고 sts 파드들의 개별 DNS 레코드 생성
+  - `redis-cluster-0.redis-cluster-headless.nks-infrastructure.svc.cluster.local`
+  - 클러스터 초기화 시 각 노드의 IP 주소 확인에 필요
+- PodDisruptionBudget: 클러스터 가용성 보장
+  - 최대 1개 pod까지만 동시 중단 허용 (`maxUnavailable: 1`)
+  - 노드 업그레이드나 유지보수 시 서비스 중단 최소화
+
+##### 파드 볼륨 구성
+
+**1. redis-data (volumeClaimTemplate)**
+- 용도: Redis 데이터 영속 저장소 (`/data` 마운트)
+- 타입: PersistentVolumeClaim (각 pod마다 독립된 5Gi NKS Block Storage)
+- 특징: pod 재시작/재스케줄링 시에도 데이터 유지
+
+**2. redis-config (ConfigMap 볼륨)**
+- 용도: Redis 설정파일 제공 (`/etc/redis` 마운트)
+- 내용: `redis.conf` (cluster-enabled, maxmemory 정책 등)
+- 특징: 모든 pod가 동일한 설정 공유
+
+##### 클러스터 초기화 여부 확인
+```bash
+# 클러스터 상태 확인
+kubectl exec -n nks-infrastructure redis-cluster-0 -- redis-cli cluster info
+
+# 노드 구성 확인 (3 마스터 + 3 슬레이브)
+kubectl exec -n nks-infrastructure redis-cluster-0 -- redis-cli cluster nodes
+
+0056c160ba3841d145bf61632ff5207afca270ca 198.18.1.95:6379@16379 slave f582a1892f7b7875415da46a16d38d2dc2d8cbcb 0 1755445454981 1 connected
+10cf6a4ddaec2a8e0ab99e9ab4c0d57a1a168445 198.18.0.38:6379@16379 master - 0 1755445457992 2 connected 5461-10922
+8372f8094d6036cfbbf3879cf280c25a72e13d10 198.18.0.169:6379@16379 slave 10cf6a4ddaec2a8e0ab99e9ab4c0d57a1a168445 0 1755445456988 2 connected
+54ef56306a3182b611b05c28c25b026628a76339 198.18.1.113:6379@16379 master - 0 1755445453000 3 connected 10923-16383
+f582a1892f7b7875415da46a16d38d2dc2d8cbcb 198.18.1.27:6379@16379 myself,master - 0 1755445449000 1 connected 0-5460
+773d814c6a7cc3e6fafaad34584dde46eb02d869 198.18.0.204:6379@16379 slave 54ef56306a3182b611b05c28c25b026628a76339 0 1755445455984 3 connected
+```
