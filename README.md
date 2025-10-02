@@ -1,5 +1,195 @@
 # 뉴스피드 시스템 구축
 
+## Multi-Module Architecture
+
+### 모듈 구조
+```
+nks-newfeed/
+├── common/                    # 공통: exception, util, enums
+├── common-api/                # API 계약 인터페이스 + FeignClient
+├── common-security/           # JWT 인증/검증
+├── repo/                      # 영속성 계층
+│   ├── repo-user/            # MySQL User 엔티티
+│   ├── repo-post/            # MySQL Post 엔티티
+│   └── repo-friend/          # Neo4j 그래프 (팔로우 관계)
+├── cache/                     # Redis 설정 및 서비스
+├── messaging/                 # RabbitMQ 설정 및 이벤트
+└── api/                       # 마이크로서비스
+    ├── api-gateway/          # JWT 검증 + 라우팅
+    ├── user-api/             # 회원가입/로그인
+    ├── post-api/             # 포스트 CRUD
+    ├── post-fanout-api/      # 포스트 팬아웃 (비동기 배포)
+    ├── newsfeed-api/         # 뉴스피드 조회
+    └── friend-api/           # 팔로우/언팔로우/추천
+```
+
+### 모듈별 세부 구조
+```
+common/
+├── exception/        # 예외 클래스 및 글로벌 핸들러
+├── util/             # 유틸리티 클래스
+└── enums/            # 공통 Enum
+
+common-api/
+├── contract/         # API 계약 인터페이스
+├── client/           # FeignClient 구현
+└── dto/              # 요청/응답 DTO
+    ├── request/
+    └── response/
+
+common-security/
+└── (보안 및 JWT 관련 클래스)
+
+repo/
+├── repo-user/
+│   ├── entity/        
+│   └── repository/    
+├── repo-post/
+│   ├── entity/        
+│   └── repository/    
+└── repo-friend/
+    ├── node/          
+    ├── relationship/  
+    └── repository/    
+
+cache/
+├── config/          # Redis 설정
+└── service/         # 범용 Redis 연산
+
+messaging/
+├── config/          # RabbitMQ 설정
+├── event/           # 이벤트 클래스
+├── producer/        # EventPublisher
+└── consumer/        # 공통 Consumer 추상 클래스
+
+api-gateway/
+├── config/
+├── filter/
+└── handler/
+
+user-api/
+├── controller/
+├── service/
+├── consumer/
+└── config/
+
+post-api/
+├── controller/
+├── service/
+└── config/
+
+post-fanout-api/
+├── consumer/
+├── service/
+└── config/
+
+newsfeed-api/
+├── controller/
+├── service/
+├── consumer/
+└── config/
+
+friend-api/
+├── controller/
+├── service/
+├── consumer/
+└── config/
+```
+
+### 핵심 설계 원칙
+- **API 계약 우선**: `common-api`에 계약 인터페이스 정의 → RestController/FeignClient 구현
+
+### 모듈 간 호출 흐름
+
+#### 1. 회원가입
+```
+Client
+  ↓ POST /auth/signup
+api-gateway (JWT 불필요 엔드포인트)
+  ↓
+user-api
+  ├─ repo-user → MySQL User 저장
+  ├─ messaging → UserCreatedEvent 발행
+  └─ cache → Refresh Token 저장
+       ↓
+    RabbitMQ
+       ↓
+friend-api (Consumer)
+  └─ repo-friend → Neo4j UserNode 생성
+```
+
+#### 2. 로그인
+```
+Client
+  ↓ POST /auth/login
+api-gateway
+  ↓
+user-api
+  ├─ repo-user → 비밀번호 검증
+  ├─ common-security → JWT 토큰 생성
+  └─ cache → Refresh Token 저장
+```
+
+#### 3. 포스트 생성
+```
+Client
+  ↓ POST /posts (Authorization: Bearer {token})
+api-gateway
+  ├─ common-security → JWT 검증 및 userId 추출
+  └─ X-User-Id 헤더 추가
+       ↓
+    post-api
+      ├─ repo-post → MySQL Post 저장
+      ├─ cache → 포스트 캐시 저장
+      └─ messaging → PostCreatedEvent 발행
+           ↓
+        RabbitMQ
+           ↓
+    post-fanout-api (Consumer)
+      ├─ FeignClient → friend-api 팔로워 목록 조회
+      │                   └─ repo-friend → Neo4j FOLLOWS 관계 조회
+      └─ cache → 각 팔로워의 뉴스피드에 postId 추가
+```
+
+#### 4. 뉴스피드 조회
+```
+Client
+  ↓ GET /newsfeed
+api-gateway
+  ├─ JWT 검증
+  └─ X-User-Id 헤더 추가
+       ↓
+    newsfeed-api
+      ├─ cache → 뉴스피드 postId 목록 조회 (Redis ZSet)
+      └─ FeignClient → post-api 포스트 상세 조회
+                         └─ cache → 캐시 조회
+                         └─ repo-post → MySQL 조회 (캐시 미스 시)
+```
+
+#### 5. 팔로우
+```
+Client
+  ↓ POST /friends/follow
+api-gateway
+  ├─ JWT 검증
+  └─ X-User-Id 헤더 추가
+       ↓
+    friend-api
+      ├─ FeignClient → user-api 대상 사용자 존재 확인
+      │                   └─ repo-user → MySQL 조회
+      ├─ repo-friend → Neo4j FOLLOWS 관계 생성
+      ├─ cache → 팔로워/팔로잉 캐시 무효화
+      └─ messaging → FollowCreatedEvent 발행
+           ↓
+        RabbitMQ
+           ↓
+    newsfeed-api (Consumer)
+      ├─ FeignClient → post-api 최근 포스트 조회
+      └─ cache → 뉴스피드 백필 (과거 포스트 추가)
+```
+
+---
+
 ## Infra
 - Ncloud Kubernetes Service 기반
   - 클러스터 전체 자원: vCPU 16EA, Memory 32GB
@@ -17,17 +207,6 @@
 ## Architecture
 - 가상면접 사례로 배우는 대규모 시스템 설계 기초 1 / 11장 기반
 ![newfeed-arch.png](newfeed-arch.png)
-
-## Backend Application
-### Web Application
-- 포스팅 저장 / 전송 / 인증 / 친구 관리
-  - PostService : 포스트 CRUD
-  - PostTransmitService : 포스트를 메시지 큐로 전송
-  - UserService : 사용자 CRUD
-  - FriendService : 친구 CRUD
-  - AuthService : JWT 인증
-### Post Distribution Worker
-- 포스트 전송 작업 서버
 
 ---
 
