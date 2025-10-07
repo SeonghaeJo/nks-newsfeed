@@ -1,0 +1,10 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'com.github.kstyrc:embedded-redis:0.6'
+}

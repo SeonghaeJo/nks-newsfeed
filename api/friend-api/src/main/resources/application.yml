@@ -1,0 +1,21 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: friend-api
+  profiles:
+    active: local
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: password
+  data:
+    redis:
+      host: localhost
+      port: 6370
+
+logging:
+  level:
+    com.personal.nksnewfeed: DEBUG

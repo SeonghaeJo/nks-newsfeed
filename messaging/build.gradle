@@ -1,0 +1,10 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    testImplementation 'com.github.fridujo:rabbitmq-mock:1.2.0'
+}

@@ -1,1 +1,23 @@
 rootProject.name = 'nks-newfeed'
+
+// Common modules
+include 'common'
+include 'common-api'
+include 'common-security'
+
+// Repository modules
+include 'repo:repo-user'
+include 'repo:repo-post'
+include 'repo:repo-friend'
+
+// Infrastructure modules
+include 'cache'
+include 'messaging'
+
+// API modules
+include 'api:api-gateway'
+include 'api:user-api'
+include 'api:post-api'
+include 'api:post-fanout-api'
+include 'api:newsfeed-api'
+include 'api:friend-api'

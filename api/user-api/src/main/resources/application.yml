@@ -1,0 +1,38 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-api
+  profiles:
+    active: local
+  cloud:
+    compatibility-verifier:
+      enabled: false
+  datasource:
+    user:
+      url: jdbc:h2:mem:testdb;MODE=MySQL;INIT=CREATE SCHEMA IF NOT EXISTS userDB
+      driver-class-name: org.h2.Driver
+      username: sa
+      password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.personal.nksnewfeed: DEBUG

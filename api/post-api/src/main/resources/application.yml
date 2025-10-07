@@ -1,0 +1,39 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: post-api
+  profiles:
+    active: local
+  datasource:
+    post:
+      url: jdbc:h2:mem:testdb;MODE=MySQL;INIT=CREATE SCHEMA IF NOT EXISTS postDB
+      driver-class-name: org.h2.Driver
+      username: sa
+      password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6370
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.personal.nksnewfeed: DEBUG

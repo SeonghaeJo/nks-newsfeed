@@ -1,0 +1,21 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: post-fanout-api
+  profiles:
+    active: local
+  data:
+    redis:
+      host: localhost
+      port: 6370
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+logging:
+  level:
+    com.personal.nksnewfeed: DEBUG

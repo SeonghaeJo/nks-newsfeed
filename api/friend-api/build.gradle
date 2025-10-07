@@ -1,0 +1,14 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':common')
+    implementation project(':common-api')
+    implementation project(':common-security')
+    implementation project(':repo:repo-friend')
+    implementation project(':cache')
+    implementation project(':messaging')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+}

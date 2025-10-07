@@ -1,39 +1,71 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.4'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '3.5.4' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-group = 'com.personal'
-version = '0.0.1-SNAPSHOT'
+allprojects {
+    group = 'com.personal'
+    version = '0.0.1-SNAPSHOT'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    repositories {
+        mavenCentral()
     }
 }
 
-repositories {
-    mavenCentral()
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-amqp'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-data-neo4j'
-    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
-    
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+tasks.register('redisUp', Exec) {
+    group = 'local'
+    description = 'Start Redis with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', 'up', '-d'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+tasks.register('redisDown', Exec) {
+    group = 'local'
+    description = 'Stop Redis with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', 'down'
+}
+
+tasks.register('redisLogs', Exec) {
+    group = 'local'
+    description = 'Show Redis logs'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', 'logs', '-f', 'redis'
+}
+
+tasks.register('containerStatus', Exec) {
+    group = 'local'
+    description = 'Check Container status'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', 'ps'
 }

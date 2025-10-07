@@ -60,7 +60,7 @@ messaging/
 ├── config/          # RabbitMQ 설정
 ├── event/           # 이벤트 클래스
 ├── producer/        # EventPublisher
-└── consumer/        # 공통 Consumer 추상 클래스
+└── topology/        # exchange, queue binding 설정
 
 api-gateway/
 ├── config/
