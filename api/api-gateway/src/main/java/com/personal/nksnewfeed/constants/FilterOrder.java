@@ -9,5 +9,6 @@ public class FilterOrder {
 
     public static final int REQUEST_ID_FILTER = Ordered.HIGHEST_PRECEDENCE;
     public static final int TRACE_ID_FILTER = Ordered.HIGHEST_PRECEDENCE + 1;
-    public static final int JWT_AUTHENTICATION_FILTER = Ordered.HIGHEST_PRECEDENCE + 2;
+    public static final int COMPONENT_HEADER_FILTER = Ordered.HIGHEST_PRECEDENCE + 2;
+    public static final int JWT_AUTHENTICATION_FILTER = Ordered.HIGHEST_PRECEDENCE + 3;
 }

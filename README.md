@@ -104,7 +104,7 @@ friend-api/
 #### 1. 회원가입
 ```
 Client
-  ↓ POST /auth/signup
+  ↓ POST /api/users/register
 api-gateway (JWT 불필요 엔드포인트)
   ↓
 user-api
@@ -121,7 +121,7 @@ friend-api (Consumer)
 #### 2. 로그인
 ```
 Client
-  ↓ POST /auth/login
+  ↓ POST /api/users/login
 api-gateway
   ↓
 user-api

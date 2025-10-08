@@ -15,6 +15,9 @@ spring:
     redis:
       host: localhost
       port: 6370
+  cloud:
+    compatibility-verifier:
+      enabled: false
 
 logging:
   level:

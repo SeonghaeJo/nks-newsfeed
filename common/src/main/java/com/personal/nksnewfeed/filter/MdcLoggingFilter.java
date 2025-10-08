@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,9 @@ import java.io.IOException;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MdcLoggingFilter extends OncePerRequestFilter {
 
+    @Value("${spring.application.name:unknown}")
+    private String applicationName;
+
     @Override
     protected void doFilterInternal(
             final HttpServletRequest request,
@@ -30,6 +34,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
             final String requestId = request.getHeader(HeaderConstants.REQUEST_ID);
             final String traceId = request.getHeader(HeaderConstants.TRACE_ID);
             final String userId = request.getHeader(HeaderConstants.USER_ID);
+            final String clientComponent = request.getHeader(HeaderConstants.COMPONENT);
 
             if (requestId != null) {
                 MDC.put(MdcConstants.REQUEST_ID, requestId);
@@ -42,6 +47,13 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
             if (userId != null) {
                 MDC.put(MdcConstants.USER_ID, userId);
             }
+
+            if (clientComponent != null) {
+                MDC.put(MdcConstants.CLIENT_COMPONENT, clientComponent);
+            }
+
+            // 현재 컴포넌트 이름 설정
+            MDC.put(MdcConstants.COMPONENT, applicationName);
 
             filterChain.doFilter(request, response);
         } finally {

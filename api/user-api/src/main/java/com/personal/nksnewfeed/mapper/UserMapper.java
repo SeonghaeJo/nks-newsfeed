@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserMapper {
 
-    public static User toEntity(final UserRegisterRequestDto request) {
+    public static User toEntity(final UserRegisterRequestDto request, final String encodedPassword) {
         return User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(request.password())
+                .password(encodedPassword)
                 .build();
     }
 

@@ -13,6 +13,7 @@ public enum ErrorCode {
     USERNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "U001", "Username already exists", Level.WARN),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "U002", "Email already exists", Level.WARN),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U003", "User not found", Level.WARN),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "U004", "Invalid username or password", Level.WARN),
 
     // Common
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "C001", "Invalid input", Level.WARN),

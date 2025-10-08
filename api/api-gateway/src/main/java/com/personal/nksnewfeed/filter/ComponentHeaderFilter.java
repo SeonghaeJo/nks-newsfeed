@@ -11,18 +11,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 @Slf4j
 @Component
-public class TraceIdFilter implements GlobalFilter, Ordered {
+public class ComponentHeaderFilter implements GlobalFilter, Ordered {
+
+    @Value("${spring.application.name:unknown}")
+    private String applicationName;
 
     @Override
     public Mono<Void> filter(final ServerWebExchange exchange, final GatewayFilterChain chain) {
-        final String traceId = UUID.randomUUID().toString();
-
         final ServerWebExchange modifiedExchange = exchange.mutate()
-                .request(builder -> builder.header(HeaderConstants.TRACE_ID, traceId))
+                .request(builder -> builder.header(HeaderConstants.COMPONENT, applicationName))
                 .build();
 
         return chain.filter(modifiedExchange);
@@ -30,6 +29,6 @@ public class TraceIdFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return FilterOrder.TRACE_ID_FILTER;
+        return FilterOrder.COMPONENT_HEADER_FILTER;
     }
 }

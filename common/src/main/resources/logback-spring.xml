@@ -2,13 +2,16 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
+    <springProperty scope="context" name="applicationName" source="spring.application.name" defaultValue="unknown"/>
+
     <!-- Console Appender - JSON format -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeMdcKeyName>requestId</includeMdcKeyName>
             <includeMdcKeyName>traceId</includeMdcKeyName>
             <includeMdcKeyName>userId</includeMdcKeyName>
-            <customFields>{"application":"${spring.application.name:-unknown}"}</customFields>
+            <includeMdcKeyName>component</includeMdcKeyName>
+            <includeMdcKeyName>clientComponent</includeMdcKeyName>
             <includeContext>false</includeContext>
             <includeCallerData>false</includeCallerData>
         </encoder>
@@ -29,7 +32,8 @@
                 <includeMdcKeyName>requestId</includeMdcKeyName>
                 <includeMdcKeyName>traceId</includeMdcKeyName>
                 <includeMdcKeyName>userId</includeMdcKeyName>
-                <customFields>{"application":"${spring.application.name:-unknown}"}</customFields>
+                <includeMdcKeyName>component</includeMdcKeyName>
+                <includeMdcKeyName>clientComponent</includeMdcKeyName>
                 <includeContext>false</includeContext>
                 <includeCallerData>false</includeCallerData>
                 <jsonGeneratorDecorator class="net.logstash.logback.decorate.PrettyPrintingJsonGeneratorDecorator"/>

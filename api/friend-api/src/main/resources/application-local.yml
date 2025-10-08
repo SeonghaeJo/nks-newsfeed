@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: friend-api
+
+server:
+  port: 8085
+
+feign:
+  user-api:
+    url: http://localhost:8081

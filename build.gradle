@@ -42,30 +42,68 @@ subprojects {
     }
 }
 
+// Redis tasks
 tasks.register('redisUp', Exec) {
     group = 'local'
     description = 'Start Redis with Docker Compose'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', 'up', '-d'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', 'up', '-d'
 }
 
 tasks.register('redisDown', Exec) {
     group = 'local'
     description = 'Stop Redis with Docker Compose'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', 'down'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', 'down'
 }
 
 tasks.register('redisLogs', Exec) {
     group = 'local'
     description = 'Show Redis logs'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', 'logs', '-f', 'redis'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', 'logs', '-f', 'redis'
 }
 
+// RabbitMQ tasks
+tasks.register('rabbitUp', Exec) {
+    group = 'local'
+    description = 'Start RabbitMQ with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-rabbitmq.yml', 'up', '-d'
+}
+
+tasks.register('rabbitDown', Exec) {
+    group = 'local'
+    description = 'Stop RabbitMQ with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-rabbitmq.yml', 'down'
+}
+
+tasks.register('rabbitLogs', Exec) {
+    group = 'local'
+    description = 'Show RabbitMQ logs'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-rabbitmq.yml', 'logs', '-f', 'rabbitmq'
+}
+
+// Common tasks
 tasks.register('containerStatus', Exec) {
     group = 'local'
     description = 'Check Container status'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', 'ps'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'ps'
+}
+
+tasks.register('allUp', Exec) {
+    group = 'local'
+    description = 'Start all containers (Redis + RabbitMQ)'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'up', '-d'
+}
+
+tasks.register('allDown', Exec) {
+    group = 'local'
+    description = 'Stop all containers (Redis + RabbitMQ)'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'down'
 }

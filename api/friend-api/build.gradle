@@ -5,7 +5,6 @@ plugins {
 dependencies {
     implementation project(':common')
     implementation project(':common-api')
-    implementation project(':common-security')
     implementation project(':repo:repo-friend')
     implementation project(':cache')
     implementation project(':messaging')
