@@ -1,9 +1,11 @@
 package com.personal.nksnewfeed.service;
 
+import com.personal.nksnewfeed.event.UserCreatedEvent;
 import com.personal.nksnewfeed.exception.BusinessException;
 import com.personal.nksnewfeed.exception.ErrorCode;
 import com.personal.nksnewfeed.jwt.JwtTokenProvider;
 import com.personal.nksnewfeed.mapper.UserMapper;
+import com.personal.nksnewfeed.publisher.UserCreatedEventPublisher;
 import com.personal.nksnewfeed.user.dto.request.LoginRequestDto;
 import com.personal.nksnewfeed.user.dto.request.UserRegisterRequestDto;
 import com.personal.nksnewfeed.user.dto.response.LoginResponseDto;
@@ -24,6 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserCreatedEventPublisher userCreatedEventPublisher;
 
     @Transactional
     public UserResponseDto register(final UserRegisterRequestDto request) {
@@ -38,6 +41,9 @@ public class UserService {
         final String encodedPassword = passwordEncoder.encode(request.password());
         final User user = UserMapper.toEntity(request, encodedPassword);
         final User savedUser = userRepository.save(user);
+
+        final UserCreatedEvent event = new UserCreatedEvent(savedUser.getId(), savedUser.getUsername());
+        userCreatedEventPublisher.publish(event);
 
         return UserMapper.toResponseDto(savedUser);
     }

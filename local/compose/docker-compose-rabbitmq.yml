@@ -12,8 +12,13 @@ services:
       RABBITMQ_DEFAULT_PASS: admin
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - rabbitmq-plugins:/plugins
     networks:
       - nks-newfeed-network
+    command: >
+      sh -c "wget -P /plugins https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.13.0/rabbitmq_delayed_message_exchange-3.13.0.ez &&
+             rabbitmq-plugins enable rabbitmq_delayed_message_exchange &&
+             rabbitmq-server"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -22,6 +27,7 @@ services:
 
 volumes:
   rabbitmq-data:
+  rabbitmq-plugins:
 
 networks:
   nks-newfeed-network:

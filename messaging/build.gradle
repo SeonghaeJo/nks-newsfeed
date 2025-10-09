@@ -5,6 +5,8 @@ plugins {
 dependencies {
     api project(':common')
 
-    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    api 'org.springframework.boot:spring-boot-starter-amqp'
+    api 'org.springframework.retry:spring-retry' // @Retryable
+    api 'org.springframework.boot:spring-boot-starter-aop' // spring-retry 를 위해 필요
     testImplementation 'com.github.fridujo:rabbitmq-mock:1.2.0'
 }

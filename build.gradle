@@ -86,24 +86,46 @@ tasks.register('rabbitLogs', Exec) {
     commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-rabbitmq.yml', 'logs', '-f', 'rabbitmq'
 }
 
+// Neo4j tasks
+tasks.register('neo4jUp', Exec) {
+    group = 'local'
+    description = 'Start Neo4j with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-neo4j.yml', 'up', '-d'
+}
+
+tasks.register('neo4jDown', Exec) {
+    group = 'local'
+    description = 'Stop Neo4j with Docker Compose'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-neo4j.yml', 'down'
+}
+
+tasks.register('neo4jLogs', Exec) {
+    group = 'local'
+    description = 'Show Neo4j logs'
+    workingDir = file("${rootProject.projectDir}/local/compose")
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-neo4j.yml', 'logs', '-f', 'neo4j'
+}
+
 // Common tasks
 tasks.register('containerStatus', Exec) {
     group = 'local'
     description = 'Check Container status'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'ps'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', '-f', 'docker-compose-neo4j.yml', 'ps'
 }
 
 tasks.register('allUp', Exec) {
     group = 'local'
-    description = 'Start all containers (Redis + RabbitMQ)'
+    description = 'Start all containers (Redis + RabbitMQ + Neo4j)'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'up', '-d'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', '-f', 'docker-compose-neo4j.yml', 'up', '-d'
 }
 
 tasks.register('allDown', Exec) {
     group = 'local'
-    description = 'Stop all containers (Redis + RabbitMQ)'
+    description = 'Stop all containers (Redis + RabbitMQ + Neo4j)'
     workingDir = file("${rootProject.projectDir}/local/compose")
-    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', 'down'
+    commandLine '/opt/homebrew/bin/docker-compose', '-f', 'docker-compose-redis.yml', '-f', 'docker-compose-rabbitmq.yml', '-f', 'docker-compose-neo4j.yml', 'down'
 }
